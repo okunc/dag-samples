@@ -1,0 +1,10 @@
+hello_world_dag:
+  default_args:
+    owner: "kyrylo"
+    start_date: "2025-01-16"
+  schedule_interval: null
+  description: "Simple hello world DAG"
+  tasks:
+    say_hello:
+      operator: airflow.operators.bash.BashOperator
+      bash_command: "echo 'Hello World!'"
