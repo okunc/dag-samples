@@ -8,7 +8,8 @@ OBJECT_NAME = "used_by_airflow"
 FILE_CONTENT = "This file is used by Airflow.\n"
 
 def write_to_gcs(**context):
-    hook = GCSHook(gcp_conn_id="google_cloud_default")  # or omit if using ADC
+    # Use ADC by not specifying gcp_conn_id
+    hook = GCSHook(gcp_conn_id=None)
     hook.upload(
         bucket_name=BUCKET_NAME,
         object_name=OBJECT_NAME,
@@ -27,7 +28,6 @@ with DAG(
     write_file = PythonOperator(
         task_id="write_used_by_airflow",
         python_callable=write_to_gcs,
-        provide_context=True,
     )
 
     write_file
