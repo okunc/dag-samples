@@ -1,27 +1,33 @@
 from datetime import datetime
 from airflow import DAG
-from airflow.providers.google.cloud.operators.gcs import GCSCreateObjectOperator
+from airflow.operators.python import PythonOperator
+from airflow.providers.google.cloud.hooks.gcs import GCSHook
 
-# # Adjust this to your Airflow connection ID for GCP
-# GCP_CONN_ID = "google_cloud_default"
+BUCKET_NAME = "dmt-dev-landing-zone"
+OBJECT_NAME = "used_by_airflow"
+FILE_CONTENT = "This file is used by Airflow.\n"
 
-with DAG(
-    dag_id="write_to_gcs",
-    start_date=datetime(2024, 1, 1),
-    schedule_interval=None,  # or set a cron, e.g. "0 1 * * *"
-    catchup=False,
-    default_args={
-        "owner": "airflow",
-    },
-) as dag:
-
-    write_file_to_gcs = GCSCreateObjectOperator(
-        task_id="write_used_by_airflow",
-        bucket_name="dmt-dev-landing-zone",
-        object_name="used_by_airflow",
-        data="This file is used by Airflow.\n",
+def write_to_gcs(**context):
+    hook = GCSHook(gcp_conn_id="google_cloud_default")  # or omit if using ADC
+    hook.upload(
+        bucket_name=BUCKET_NAME,
+        object_name=OBJECT_NAME,
+        data=FILE_CONTENT,
         mime_type="text/plain",
-        gcp_conn_id=GCP_CONN_ID,
     )
 
-    write_file_to_gcs
+with DAG(
+    dag_id="write_used_by_airflow_to_gcs",
+    start_date=datetime(2024, 1, 1),
+    schedule_interval=None,
+    catchup=False,
+    default_args={"owner": "airflow"},
+) as dag:
+
+    write_file = PythonOperator(
+        task_id="write_used_by_airflow",
+        python_callable=write_to_gcs,
+        provide_context=True,
+    )
+
+    write_file
